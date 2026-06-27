@@ -1,70 +1,76 @@
-// Netlify Function: Footballdata.io World Cup live scores proxy
-// Key provided by user. Recommended production setup: set FOOTBALLDATA_API_KEY in Netlify env vars.
+// Netlify Function: Footballdata.io proxy for World Cup 2026 bracket
+// Recommended: set FOOTBALLDATA_API_KEY in Netlify Environment Variables.
 const FOOTBALLDATA_API_KEY = process.env.FOOTBALLDATA_API_KEY || "ft_worldcup_61fb89bf7167112d84041f4bec439d343cdf6d0b";
+const FOOTBALLDATA_LEAGUE_ID = process.env.FOOTBALLDATA_LEAGUE_ID || "50";
 
 exports.handler = async function () {
   if (!FOOTBALLDATA_API_KEY) {
     return json(500, { error: "Missing FOOTBALLDATA_API_KEY environment variable" });
   }
 
-  // World Cup league_id according to Footballdata.io World Cup API examples.
-  const leagueId = process.env.FOOTBALLDATA_LEAGUE_ID || "50";
-
-  // Try live first. If no live matches, your front-end will still display fallback bracket data.
-  const endpoints = [
-    `https://api.footballdata.io/api/v1/fixtures/live?league_id=${leagueId}`,
-    `https://api.footballdata.io/api/v1/fixtures/today?league_id=${leagueId}`,
-    `https://api.footballdata.io/api/v1/fixtures/upcoming?league_id=${leagueId}`
+  // Primary fix: use footballdata.io as the host, not api.footballdata.io.
+  // The docs/API explorer show endpoints under footballdata.io with paths such as /fixtures/live.
+  const bases = [
+    "https://footballdata.io/api/v1",
+    "https://footballdata.io"
   ];
 
-  let lastError = null;
+  const paths = [
+    `/fixtures/live?league_id=${FOOTBALLDATA_LEAGUE_ID}`,
+    `/fixtures/today?league_id=${FOOTBALLDATA_LEAGUE_ID}`,
+    `/fixtures/upcoming?league_id=${FOOTBALLDATA_LEAGUE_ID}`,
+    `/matches?league_id=${FOOTBALLDATA_LEAGUE_ID}`
+  ];
 
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${FOOTBALLDATA_API_KEY}`,
-          Accept: "application/json"
-        }
-      });
+  const attempts = [];
 
-      const text = await res.text();
-      let raw;
-      try { raw = JSON.parse(text); } catch { raw = { raw: text }; }
-
-      // If auth/permission fails, return API error details to browser status/debugging.
-      if (res.status === 401 || res.status === 403) {
-        return json(res.status, {
-          error: "Footballdata.io rejected the API request",
-          status: res.status,
-          endpoint: url,
-          upstream: raw
+  for (const base of bases) {
+    for (const path of paths) {
+      const url = base + path;
+      try {
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${FOOTBALLDATA_API_KEY}`,
+            Accept: "application/json",
+            "User-Agent": "worldcup2026-bracket/1.0"
+          }
         });
-      }
 
-      if (!res.ok) {
-        lastError = { status: res.status, endpoint: url, upstream: raw };
-        continue;
-      }
+        const text = await res.text();
+        let raw;
+        try { raw = JSON.parse(text); } catch { raw = { raw: text }; }
 
-      return json(200, normalizeFootballdata(raw, url));
-    } catch (e) {
-      lastError = { endpoint: url, error: e.message };
+        attempts.push({ url, status: res.status });
+
+        if (res.status === 401 || res.status === 403) {
+          return json(res.status, {
+            error: "Footballdata.io rejected the API request",
+            status: res.status,
+            endpoint: url,
+            upstream: raw,
+            attempts
+          });
+        }
+
+        if (!res.ok) continue;
+
+        return json(200, normalizeFootballdata(raw, url, attempts));
+      } catch (e) {
+        attempts.push({ url, error: e.message });
+      }
     }
   }
 
   return json(502, {
-    error: "All Footballdata.io endpoints failed",
-    lastError
+    error: "All Footballdata.io endpoint attempts failed",
+    attempts
   });
 };
 
-function normalizeFootballdata(raw, endpoint) {
+function normalizeFootballdata(raw, endpoint, attempts) {
   const matches = extractMatches(raw);
 
-  // Return a normalized shape compatible with the existing app.js merge function:
-  // { data: [{ competition, status, minute, home:{name,score}, away:{name,score} }] }
   const data = matches.map((m) => {
     const homeName =
       m.home_team?.team_name || m.home_team?.name || m.home?.name || m.home?.team_name || m.localteam?.name || "TBD";
@@ -96,6 +102,7 @@ function normalizeFootballdata(raw, endpoint) {
   return {
     provider: "footballdata.io",
     endpoint,
+    attempts,
     count: data.length,
     data
   };
