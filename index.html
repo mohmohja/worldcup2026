@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FIFA World Cup 2026 Bracket</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="flag-line top"><span class="green"></span><span class="red"></span></div>
+
+  <header class="poster-header">
+    <div class="trophy-mark" aria-hidden="true">🏆</div>
+    <div class="title-block">
+      <div class="official">Official tournament bracket</div>
+      <h1>FIFA WORLD CUP 2026</h1>
+      <div class="subline"><strong>KNOCKOUT STAGE</strong><span>|</span> USA • CANADA • MEXICO <span>|</span> JUNE 28 — JULY 19, 2026</div>
+    </div>
+  </header>
+
+  <nav class="stage-tabs" aria-label="Tournament stages">
+    <div class="tab green">ROUND OF 32</div>
+    <div class="tab green-dark">ROUND OF 16</div>
+    <div class="tab burgundy">QUARTERFINAL</div>
+    <div class="tab red">SEMIFINAL</div>
+    <div class="tab gold">FINAL</div>
+    <div class="tab red">SEMIFINAL</div>
+    <div class="tab burgundy">QUARTERFINAL</div>
+    <div class="tab green-dark">ROUND OF 16</div>
+    <div class="tab green">ROUND OF 32</div>
+  </nav>
+
+  <section class="controls no-print">
+    <div class="status"><strong>Status:</strong> <span id="connectionStatus">Loading qualified teams…</span><span id="statusDot" class="dot"></span></div>
+    <div class="buttons">
+      <button id="refreshBtn">Refresh live data</button>
+      <button id="predictionBtn" class="btn-gold">Fill prediction</button>
+      <button id="realBtn">Real teams only</button>
+      <button id="printBtn">Print</button>
+    </div>
+  </section>
+
+  <main class="bracket-board">
+    <section class="side left-side">
+      <div id="leftR32" class="round r32"></div>
+      <div id="leftR16" class="round r16"></div>
+      <div id="leftQF" class="round qf"></div>
+      <div id="leftSF" class="round sf"></div>
+    </section>
+
+    <section class="center-stage">
+      <article id="finalMatch" class="final-card"></article>
+      <div id="champion" class="champion-card">★ CHAMPION ★<br><strong>TBD</strong></div>
+      <article id="thirdPlace" class="third-card"></article>
+    </section>
+
+    <section class="side right-side">
+      <div id="rightSF" class="round sf"></div>
+      <div id="rightQF" class="round qf"></div>
+      <div id="rightR16" class="round r16"></div>
+      <div id="rightR32" class="round r32"></div>
+    </section>
+  </main>
+
+  <footer class="poster-footer">
+    <em>Fill in your predictions →</em>
+    <strong>WORLD CUP 2026 LIVE BRACKET</strong>
+  </footer>
+  <div class="flag-line bottom"><span class="red"></span><span class="green"></span></div>
+
+  <section class="qualified-panel no-print">
+    <h2>Qualified teams shown by default</h2>
+    <div id="qualifiedList" class="chips"></div>
+  </section>
+
+  <script src="data.js"></script>
+  <script src="api-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
