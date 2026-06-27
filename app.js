@@ -107,6 +107,12 @@ function mergeApiFootball(localData, apiPayload){
 }
 
 $('#predictionBtn').addEventListener('click',()=>{mode='prediction'; currentData=clone(window.PREDICTION_BRACKET_DATA); render(currentData); setStatus('Prediction mode activated. This is not real data.','warn');});
-$('#realBtn').addEventListener('click',()=>{mode='real'; currentData=clone(window.REAL_BRACKET_DATA); render(currentData); setStatus('Real teams only. Prediction removed.','ok'); fetchLiveScores();});
+$('#realBtn').addEventListener('click',()=>{
+  mode='real';
+  currentData=clone(window.REAL_BRACKET_DATA);
+  render(currentData);
+  setStatus('Real teams only. Prediction removed. Auto API refresh is OFF.', 'ok');
+});
 $('#refreshBtn').addEventListener('click',fetchLiveScores); $('#printBtn').addEventListener('click',()=>window.print());
-render(currentData); setStatus('Real qualified teams loaded. Connecting to live API if configured…'); fetchLiveScores(); setInterval(fetchLiveScores,Math.max(30,cfg.refreshSeconds||60)*1000);
+render(currentData);
+setStatus('Real qualified teams loaded. Auto API refresh is OFF. Click Refresh live data to update manually.', 'ok');
