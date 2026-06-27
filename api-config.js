@@ -1,17 +1,14 @@
 window.API_CONFIG = {
-  // IMPORTANT:
-  // Keep provider as "proxy" because the current app.js checks for provider === "proxy".
-  // The proxy function below now connects to TheStatsAPI.
+  // app.js calls /.netlify/functions/live-scores when provider is "proxy".
   provider: "proxy",
   refreshSeconds: 60,
 
-  // Legacy object kept only so older app.js versions do not break.
-  // The real key is used server-side in netlify/functions/live-scores.js.
+  // API key is NOT used in browser. It is used server-side in Netlify Function.
   apiFootball: {
     enabled: false,
-    baseUrl: "https://v3.football.api-sports.io",
-    apiKey: "DO_NOT_USE_BROWSER_KEY",
-    league: 1,
+    baseUrl: "",
+    apiKey: "DO_NOT_PUT_KEY_HERE",
+    league: 50,
     season: 2026
   }
 };
