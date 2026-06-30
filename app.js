@@ -98,19 +98,34 @@ async function fetchLiveScores(){
     setStatus('Showing fallback bracket. API not connected: '+err.message,'err');
   }
 }
+
+// Round-name matcher: specific patterns are checked before general ones so
+// "Round of 16" can never be mis-bucketed by a looser fragment, and we use
+// real regexes (word boundaries) instead of naive substring includes() so
+// e.g. "Round of 16" doesn't accidentally satisfy a check meant for "Round
+// of 1" or similar partial text some providers send.
+const ROUND_PATTERNS = [
+  { key: 'r32', tests: [/round of 32/i, /last 32/i, /32nd\s*finals?/i] },
+  { key: 'r16', tests: [/round of 16/i, /8th\s*finals?/i, /last 16/i] },
+  { key: 'qf', tests: [/quarter/i] },
+  { key: 'sf', tests: [/semi/i] },
+  { key: 'final', tests: [/3rd place/i, /third place/i, /\bfinal\b/i] }
+];
+function matchRoundKey(roundName){
+  const rn = String(roundName||'');
+  for(const {key,tests} of ROUND_PATTERNS){ if(tests.some(t=>t.test(rn))) return key; }
+  return null;
+}
+
 function mergeFootballResponse(localData, apiPayload){
   const fixtures=Array.isArray(apiPayload?.response)?apiPayload.response:[];
   if(!fixtures.length) return clone(localData);
-  const words=['Round of 32','8th Finals','Round of 16','Quarter','Semi','Final','3rd Place'];
-  const relevant=fixtures.filter(f=>words.some(w=>String(f.league?.round||'').toLowerCase().includes(w.toLowerCase())));
+  const relevant=fixtures.filter(f=>matchRoundKey(f.league?.round)!==null);
   if(!relevant.length) return clone(localData);
-  const roundMap={'Round of 32':'r32','8th Finals':'r16','Round of 16':'r16','Quarter':'qf','Semi':'sf','Final':'final','3rd Place':'final'};
   const buckets={r32:[],r16:[],qf:[],sf:[],final:[]};
   const rebuilt={mode:'real',generatedAt:new Date().toISOString(),source:'Live API',qualifiedTeams:[...localData.qualifiedTeams],rounds:[],champion:'TBD'};
   relevant.sort((a,b)=>new Date(a.fixture?.date||0)-new Date(b.fixture?.date||0)).forEach(f=>{
-    const rn=String(f.league?.round||'');
-    const key=Object.keys(roundMap).find(k=>rn.toLowerCase().includes(k.toLowerCase()));
-    const bucket=roundMap[key]||'r32';
+    const bucket=matchRoundKey(f.league?.round)||'r32';
     const home=f.teams?.home?.name||'TBD', away=f.teams?.away?.name||'TBD';
     let winner=null; if(f.teams?.home?.winner) winner=home; if(f.teams?.away?.winner) winner=away;
     buckets[bucket].push({id:'M'+(f.fixture?.id||''),date:f.fixture?.status?.short||(f.fixture?.date?new Date(f.fixture.date).toLocaleDateString():''),status:f.fixture?.status?.short||'',home,away,homeScore:f.goals?.home,awayScore:f.goals?.away,winner,venue:f.fixture?.venue?.name||f.venue?.name||''});
